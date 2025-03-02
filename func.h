@@ -35,22 +35,20 @@ float basefloat;
 long baselong;
 std::string basestring;
 
-struct int_result_t{
-    int id;
-    uintptr_t addr;
-};
 
-int int_result[32];
-bool int_result_occupy[32];
-
+int int_result[64];
+int inttmptop=0;
 
 int32_t buffers[1024];
+int isrounded=0;
+int readtop=0;
 int top=0;
 
 int32_t nextbuf(){
     int32_t ret=buffers[top];
     top++;
     if(top==1024){
+        isrounded--;
         top=0;
     }
     return ret;
@@ -62,9 +60,6 @@ uintptr_t value(){
     }
 }
 
-int getavaliableint(){
-
-}
 
 inline void new_int(){
     for (int i=0;i<nextbuf();i++){
@@ -99,29 +94,40 @@ void delete_value(){
 }
 
 inline int gettmpint(){
-    for(int i=0;i<32;i++){
-        if(!int_result_occupy[i]){
-            int_result_occupy[i]=true;
-            return i;
-        }
+    int a=inttmptop;
+    inttmptop++;
+    if(inttmptop==64){
+        inttmptop=0;
     }
-}
-
-inline void releasetmpint(int i){
-    int_result_occupy[i]=false;
+    return a;
 }
 
 inline uintptr_t result();
 
-inline int_result_t add_int(){
-    int i=gettmpint();
-    int *a=&int_result[i];
+inline uintptr_t add_int(){
+    int *a=&int_result[gettmpint()];
     switch (nextbuf()) {
         case int_val:
             *a=nextbuf();
             break;
         case value_val:
-            *a=*(reinterpret_cast<int *>(value()));
+            switch (nextbuf()) {
+                case int_val:
+                    *a=intstack[nextbuf()];
+                    break;
+                case long_val:
+                    *a=longstack[nextbuf()];
+                    break;
+                case double_val:
+                    *a=int(doublestack[nextbuf()]);
+                    break;
+                case float_val:
+                    *a=int(floatstack[nextbuf()]);
+                    break;
+                case char_val:
+                    *a=int(charstack[nextbuf()]);
+                    break;
+            }
             break;
         /*case result_val:
             *a=result();
@@ -132,25 +138,46 @@ inline int_result_t add_int(){
             *a+=nextbuf();
             break;
         case value_val:
-            *a+=*(reinterpret_cast<int *>(value()));
+            switch (nextbuf()) {
+                case int_val:
+                    *a+=intstack[nextbuf()];
+                    break;
+                case long_val:
+                    *a+=longstack[nextbuf()];
+                    break;
+                case double_val:
+                    *a+=int(doublestack[nextbuf()]);
+                    break;
+                case float_val:
+                    *a+=int(floatstack[nextbuf()]);
+                    break;
+                case char_val:
+                    *a+=static_cast<int>(charstack[nextbuf()]);
+                    break;
+            }
             break;
         case result_val:
             *a+=result();
             break;
     }
-    int_result_t ret;
-    ret.id=i;
-    ret.addr=reinterpret_cast<uintptr_t>(a);
-    return ret;
+
+    return reinterpret_cast<uintptr_t>(a);
+
+}
+
+uintptr_t input_func(){
+    switch (nextbuf()) {
+        case int_val:
+            int i=gettmpint();
+            std::cin>>int_result[i];
+            return reinterpret_cast<uintptr_t>(&int_result[i]);
+    }
 }
 
 inline uintptr_t result_int(){
     switch (nextbuf()) {
         case add_val:
-            int_result_t a;
-            a=add_int();
-            releasetmpint(a.id);
-            return a.addr;
+            return add_int();
     }
 }
 
@@ -158,6 +185,9 @@ inline uintptr_t result(){
     switch (nextbuf()) {
         case int_val:
             return result_int();
+        case print_val:
+            return input_func();
+
     }
 }
 
@@ -185,3 +215,18 @@ void equal(){
             break;
     }
 }
+
+void print_func(){
+    switch(nextbuf()){
+        case int_val:
+            std::cout<<nextbuf()<<std::endl;
+            break;
+        case value_val:
+            std::cout<<*(reinterpret_cast<int *>(value()))<<std::endl;
+            break;
+        case result_val:
+            std::cout<<*reinterpret_cast<int *>(result())<<std::endl;
+            break;
+    }
+}
+

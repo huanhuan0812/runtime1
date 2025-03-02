@@ -5,6 +5,8 @@
 #pragma once
 #include<cstdint>
 
+const int32_t Mainend=0x00000003;
+
 const int32_t bool_val=0x00000010;
 const int32_t int_val=0x00000011;
 const int32_t long_val=0x00000012;
@@ -18,6 +20,10 @@ const int32_t new_val=0x0000001E;
 const int32_t delete_val=0x0000001F;
 const int32_t equal_val=0x00000020;
 const int32_t add_val=0x00000021;
+
+const int32_t print_val=0x00000037;
+
+const int32_t input_val=0x0000003A;
 
 const int32_t result_val=0x00000040;
 
